@@ -1,0 +1,71 @@
+# Copyright (c) 2026 The Kernel Project
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, You can obtain one at
+# http://mozilla.org/MPL/2.0/.
+
+name: Kernel Quality Gate & Formal Verification
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: "1.99.1"
+  TARGET_ARCH: "riscv32imac-unknown-none-elf"
+
+jobs:
+  verify:
+    name: Verification & Safety Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Clang & Build Tools (for HAL C sources)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang llvm
+
+      - name: Setup Rust Toolchain (1.99.1 Stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ env.TARGET_ARCH }}
+          components: clippy, rustfmt
+
+      - name: Cache Cargo Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: 1. Code Formatting Check
+        run: cargo fmt --check
+
+      - name: 2. Static Analysis & Strict Linting (Clippy)
+        run: cargo clippy --target ${{ env.TARGET_ARCH }} -- -D warnings
+
+      - name: 3. Kernel Compilation Check (Bare-Metal RISC-V)
+        run: cargo check --target ${{ env.TARGET_ARCH }}
+
+      - name: 4. Unsafe Code Boundary Audit
+        run: |
+          echo "Auditing kernel core for unauthorized unsafe blocks..."
+          # Verifica che nessun blocco unsafe sia stato inserito al di fuori dei moduli autorizzati (start.rs e panic.rs)
+          UNSAFE_COUNT=$(grep -rnE "unsafe \{" src/ | grep -v "src/start.rs" | grep -v "src/panic.rs" | wc -l)
+          if [ "$UNSAFE_COUNT" -gt 0 ]; then
+            echo "ERROR: Found unauthorized unsafe code outside bootstrap modules!"
+            grep -rnE "unsafe \{" src/ | grep -v "src/start.rs" | grep -v "src/panic.rs"
+            exit 1
+          fi
+          echo "Unsafe boundary check passed successfully."
