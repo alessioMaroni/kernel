@@ -29,12 +29,12 @@ jobs:
       - name: Link HAL Dependency
         run: ln -s $GITHUB_WORKSPACE/rp2350-hazard3-hal ../rp2350-hazard3-hal
 
-      - name: Install Clang & Build Tools (for HAL C sources)
+      - name: Install Clang & Build Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang llvm
+          sudo apt-get install -y clang llvm libclang-dev
 
-      - name: Setup Rust Toolchain (1.99.1 Stable)
+      - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
