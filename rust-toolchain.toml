@@ -1,0 +1,12 @@
+[toolchain]
+channel = "1.99.1"
+components = [
+    "rust-src",
+    "rust-analyzer",
+    "clippy",
+    "rustfmt"
+]
+
+targets = [
+    "riscv32imac-unknown-none-elf"
+]

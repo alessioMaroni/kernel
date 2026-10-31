@@ -1,0 +1,78 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+# Project use the 2021 edition of Rust for more compatibility with the formal verification and certification ecosystem.
+edition = "2021"
+readme = "README.md"
+license = "MPL-2.0"
+repository = "https://github.com/alessioMaroni/kernel"
+documentation = "https://github.com/alessioMaroni/kernel/Documentation/INDEX.md"
+rust-version = "1.99.1"
+description = "A Rust-based safty-critical kernel for embedded systems, designed with formal verification and certification."
+keywords = [
+    "kernel",
+    "embedded",
+    "formal-verification",
+    "safty-critical",
+    "real-time"
+]
+categories = [
+    "embedded",
+    "operating-systems",
+    "real-time",
+    "formal-verification",
+]
+authors = [
+    "The Kernel Project",
+    "Alessio Maroni <alessiomaronidev@gmail.com>",
+]
+
+exclude = [
+    ".gitignore",
+    ".gitattributes",
+    "LICENSE",
+    "README.md",
+    "Makefile",
+    "/.github",
+    "/.git",
+    "/.vscode",
+    "/Documentation",
+    "/License",
+]
+
+[dependencies]
+# rp2350 Board Hardware Abstraction Layer Library
+rp2350-hazard3-hal = "0.1.1"
+
+[patch.crates-io]
+rp2350-hazard3-hal = { path = "../rp2350-hazard3-hal" }
+
+[features]
+default = []
+
+[lints]
+workspace = true
+
+[workspace.lints.rust]
+missing_docs = "deny"
+unsafe_op_in_unsafe_fn = "forbid"
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+missing_safety_doc = "deny"
+missing_errors_doc = "deny"
+missing_panics_doc = "deny"
+
+[profile.dev]
+# Check fot overflow in debug builds.
+overflow-checks = true
+# Activate checks at runtime (!assert).
+debug-assertions = true
+# Incremental compilation enabled to speed up the build process.
+incremental = true
+lto = false
+debug = 2
+opt-level = 0
+# Forces the compiler to generate the code sequentially as a single unit.
+codegen-units = 1
+panic = "abort"

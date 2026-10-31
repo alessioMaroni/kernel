@@ -1,0 +1,39 @@
+# Copyright (c) 2026 The Kernel Project
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, You can obtain one at
+# http://mozilla.org/MPL/2.0/.
+
+[alias]
+b = "build"
+bj = "build -j 3"
+c = "check"
+cl = "clippy"
+cln = "clean"
+r = "run"
+rr = "run --release"
+
+[build]
+target = "riscv32imac-unknown-none-elf"
+jobs = 1
+# rustc-wrapper = "sccache"
+rustdocflags = ["--deny-warnings"]
+incremental = false
+[unstable]
+build-std = ["core"]
+
+[target.riscv32imac-unknown-none-elf]
+runner = "probe-rs run --chip RP2350"
+rustflags = [
+    "-D", "warnings",
+    "-C", "panic=abort",
+    "-C", "overflow-checks=on",
+    "-C", "force-frame-pointers=yes",
+    "-C", "llvm-args=-trap-unreachable",
+    "-C", "link-arg=-Tmemory.x",
+    "-C", "link-arg=--nmagic",
+]
+
+[env]
+CC_riscv32imac_unknown_none_elf = "clang"
+CFLAGS_riscv32imac_unknown_none_elf = "--target=riscv32-unknown-none-elf -march=rv32imac -mabi=ilp32"

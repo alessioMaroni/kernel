@@ -1,13 +1,13 @@
 # RSC-V Kernel Architecture & Safety Manifesto
 > **Design Specification and Coding Guidelines for High-Reliability, Safety-Critical Bare-Metal Systems**  
-> *Target Architecture:* 
+> *Target Architecture: RISC-V* 
 > *Standards Target:* DO-178C DAL A / NASA JPL Safety Critical Rules / SIL4
 
 ---
 
 ## 1. Project Overview
 
-- **Project Name:**
+- **Project Name: Kernel**
 - **Concept:** A ultra-deterministic, multi-language, safety-critical Real-Time Operating System (RTOS) kernel built for high-reliability aerospace and embedded application environments.
 - **Primary Languages:**
   - **Rust (`no_std`)**: Core Kernel, Task Scheduler, IPC, Type-Safe Hardware Abstractions (~85%).

@@ -1,0 +1,34 @@
+# Copyright (c) 2026 The Kernel Project
+#
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0.
+# If a copy of the MPL was not distributed with this file, You can obtain one at
+# http://mozilla.org/MPL/2.0/.
+
+# Minimum Supported Rust Version (MSRV) lock for deterministic linting
+msrv = "1.99.1"
+
+# Cognitive complexity threshold per function (DO-178C / MISRA compliance)
+# Any function exceeding a complexity score of 10 will be rejected.
+cognitive-complexity-threshold = 10
+
+# Maximum line count per function to ensure readability, maintainability, and auditability
+too-many-lines-threshold = 60
+
+# Maximum parameter count per function (prevents complex stack frame allocation and register spilling)
+too-many-arguments-threshold = 5
+
+# Maximum byte thresholds for stack-allocated objects
+# Prevents large local structures or arrays from risking silent stack overflows in SRAM.
+large-error-threshold = 128
+array-size-threshold = 512
+
+# Recognized domain-specific identifiers permitted in doc-comments
+doc-valid-idents = [
+    "RISC-V",
+    "Hazard3",
+    "RP2350",
+    "MPU",
+    "FDIR",
+    "MMIO",
+    "SRAM",
+]
