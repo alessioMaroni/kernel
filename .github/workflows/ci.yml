@@ -23,8 +23,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Kernel Repository
         uses: actions/checkout@v4
+
+      - name: Checkout HAL Repository
+        uses: actions/checkout@v4
+        with:
+          repository: alessioMaroni/rp2350-hazard3-hal
+          path: ../rp2350-hazard3-hal
 
       - name: Install Clang & Build Tools (for HAL C sources)
         run: |
@@ -61,7 +67,6 @@ jobs:
       - name: 4. Unsafe Code Boundary Audit
         run: |
           echo "Auditing kernel core for unauthorized unsafe blocks..."
-          # Verifica che nessun blocco unsafe sia stato inserito al di fuori dei moduli autorizzati (start.rs e panic.rs)
           UNSAFE_COUNT=$(grep -rnE "unsafe \{" src/ | grep -v "src/start.rs" | grep -v "src/panic.rs" | wc -l)
           if [ "$UNSAFE_COUNT" -gt 0 ]; then
             echo "ERROR: Found unauthorized unsafe code outside bootstrap modules!"
