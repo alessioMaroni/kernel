@@ -40,7 +40,6 @@ mod setup;
 /// # Behavior
 /// Keeps the processor in a safe idle state while waiting for hardware interrupts
 /// or scheduler tick events.
-
 #[inline(never)]
 #[forbid(unsafe_code)]
 pub extern "C" fn _main() -> ! {
