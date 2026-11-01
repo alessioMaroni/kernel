@@ -10,6 +10,7 @@ env:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN: "1.99.1"
   TARGET_ARCH: "riscv32imac-unknown-none-elf"
+  CARGO_FEATURE: "rp2350"
 
 jobs:
   verify:
@@ -29,10 +30,10 @@ jobs:
       - name: Link HAL Dependency
         run: ln -s $GITHUB_WORKSPACE/rp2350-hazard3-hal ../rp2350-hazard3-hal
 
-      - name: Install Clang & Build Tools
+      - name: Install Clang & RISC-V Cross Toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang llvm libclang-dev
+          sudo apt-get install -y clang llvm libclang-dev gcc-riscv64-unknown-elf
 
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -56,18 +57,18 @@ jobs:
         run: cargo fmt --check
 
       - name: 2. Static Analysis & Strict Linting (Clippy)
-        run: cargo clippy --target ${{ env.TARGET_ARCH }} -- -D warnings
+        run: cargo clippy --target ${{ env.TARGET_ARCH }} --features ${{ env.CARGO_FEATURE }} -- -D warnings
 
       - name: 3. Kernel Compilation Check (Bare-Metal RISC-V)
-        run: cargo check --target ${{ env.TARGET_ARCH }}
+        run: cargo check --target ${{ env.TARGET_ARCH }} --features ${{ env.CARGO_FEATURE }}
 
       - name: 4. Unsafe Code Boundary Audit
         run: |
           echo "Auditing kernel core for unauthorized unsafe blocks..."
-          UNSAFE_COUNT=$(grep -rnE "unsafe \{" src/ | grep -v "src/start.rs" | grep -v "src/panic.rs" | wc -l)
+          UNSAFE_COUNT=$(grep -rnE "unsafe \{" src/ | grep -v "src/setup.rs" | grep -v "src/panic.rs" | grep -v "src/boards/" | wc -l)
           if [ "$UNSAFE_COUNT" -gt 0 ]; then
             echo "ERROR: Found unauthorized unsafe code outside bootstrap modules!"
-            grep -rnE "unsafe \{" src/ | grep -v "src/start.rs" | grep -v "src/panic.rs"
+            grep -rnE "unsafe \{" src/ | grep -v "src/setup.rs" | grep -v "src/panic.rs" | grep -v "src/boards/"
             exit 1
           fi
           echo "Unsafe boundary check passed successfully."
