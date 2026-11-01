@@ -13,9 +13,7 @@
 
 #![no_std]
 #![no_main]
-
 #![deny(unsafe_code)]
-
 #![deny(missing_docs)]
 #![deny(clippy::undocumented_unsafe_blocks)]
 #![deny(clippy::missing_safety_doc)]
