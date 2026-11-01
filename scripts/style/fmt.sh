@@ -1,22 +1,27 @@
 #!/usr/bin/env bash
+set -e
 
-echo "Formatting workspace..."
+REPO_ROOT=$(git rev-parse --show-toplevel)
+IGNORE_FILE="$REPO_ROOT/.git-blame-ignore-revs"
+
+echo "Formatting workspace with rustfmt..."
 cargo fmt --all
 
 if git diff --quiet; then
     echo "No formatting changes to save."
-else
-    git add .
-    git commit -m "style: format workspace with rustfmt"
-    
-    FMT_HASH=$(git rev-parse HEAD)
-    
-    echo "" >> ../.git-blame-ignore-revs
-    echo "# rustfmt run" >> ../.git-blame-ignore-revs
-    echo "$FMT_HASH" >> ../.git-blame-ignore-revs
-    
-    git add ../.git-blame-ignore-revs
-    git commit --amend --no-edit
-    
-    echo "Formatting and ignore-revs completed in a single commit!"
+    exit 0
 fi
+
+git add -u
+git commit -m "style: format workspace with rustfmt"
+
+FMT_HASH=$(git rev-parse HEAD)
+
+echo "" >> "$IGNORE_FILE"
+echo "# rustfmt run" >> "$IGNORE_FILE"
+echo "$FMT_HASH" >> "$IGNORE_FILE"
+
+git add "$IGNORE_FILE"
+git commit -m "build: ignore rustfmt commit $FMT_HASH in git blame"
+
+echo "Formatting completed and hash $FMT_HASH added to .git-blame-ignore-revs!"

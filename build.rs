@@ -7,7 +7,7 @@
 //! # Build Script for Kernel Bootstrap and Linker Configurations
 //!
 //! This script manages the compilation of low-level assembly bootstrap files
-//! and configures Cargo to pass board-specific linker scripts to `rustc` when 
+//! and configures Cargo to pass board-specific linker scripts to `rustc` when
 //! targeting the Raspberry Pi RP2350 (Hazard3 RISC-V core).
 
 use std::env;
@@ -22,9 +22,8 @@ fn main() {
     // Board-specific compilation pipeline for RP2350
     if env::var("CARGO_FEATURE_RP2350").is_ok() {
         // Compile the RISC-V assembly bootstrap code into a static library.
-        //
-        // NOTE: 
-        // `start.s` includes `image.s` via `.include`, so only `start.s` 
+        // NOTE:
+        // `start.s` includes `image.s` via `.include`, so only `start.s`
         // is directly passed to avoid duplicate symbol definitions.
         cc::Build::new()
             .file("src/boards/rp2350/start.s")
