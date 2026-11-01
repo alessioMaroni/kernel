@@ -9,6 +9,10 @@ repository = "https://github.com/alessioMaroni/kernel"
 documentation = "https://github.com/alessioMaroni/kernel/Documentation/INDEX.md"
 rust-version = "1.99.1"
 description = "A Rust-based safty-critical kernel for embedded systems, designed with formal verification and certification."
+authors = [
+    "The Kernel Project",
+    "Alessio Maroni <alessiomaronidev@gmail.com>",
+]
 keywords = [
     "kernel",
     "embedded",
@@ -22,10 +26,6 @@ categories = [
     "real-time",
     "formal-verification",
 ]
-authors = [
-    "The Kernel Project",
-    "Alessio Maroni <alessiomaronidev@gmail.com>",
-]
 
 exclude = [
     ".gitignore",
@@ -37,18 +37,20 @@ exclude = [
     "/.git",
     "/.vscode",
     "/Documentation",
-    "/License",
 ]
 
-[dependencies]
-# rp2350 Board Hardware Abstraction Layer Library
-rp2350-hazard3-hal = "0.1.1"
+[build-dependencies]
+cc = "1.0"
 
-[patch.crates-io]
-rp2350-hazard3-hal = { path = "../rp2350-hazard3-hal" }
+[target.'cfg(all(target_arch = "riscv32", target_os = "none"))'.dependencies]
+rp2350-hazard3-hal = { version = "0.1.1", optional = true }
 
 [features]
 default = []
+rp2350 = ["dep:rp2350-hazard3-hal"]
+
+[patch.crates-io]
+rp2350-hazard3-hal = { path = "../rp2350-hazard3-hal" }
 
 [lints]
 workspace = true
@@ -72,7 +74,8 @@ debug-assertions = true
 incremental = true
 lto = false
 debug = 2
-opt-level = 0
 # Forces the compiler to generate the code sequentially as a single unit.
 codegen-units = 1
 panic = "abort"
+# Optimizes for size
+opt-level = "s"

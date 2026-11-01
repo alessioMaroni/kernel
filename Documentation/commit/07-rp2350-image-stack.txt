@@ -1,0 +1,55 @@
+feat(rp2350): implement RISC-V bare-metal bootstrap and debug workflow
+
+This commit establishes the complete bare-metal foundational layer for 
+the Raspberry Pi RP2350 (Hazard3 RISC-V core). It orchestrates the 
+entire boot sequence from the hardware BootROM up to the Safe Rust 
+kernel main loop, laying the groundwork for a DO-178C certifiable 
+architecture.
+
+Hardware Configuration & Boot Sequence:
+- Added `image.s` containing the mandatory 32-byte Picobin header block. 
+  This configures the BootROM to select the RISC-V architecture and sets 
+  the initial execution flags (Secure Machine Mode).
+- Implemented `start.s` as the primary assembly entry point (`_start`).
+  * Initializes the stack pointer (`sp`) to `_stack_top`.
+  * Performs the critical hardware memory initialization: copies the 
+    `.data` section from Flash to RAM and zero-initializes the `.bss` 
+    section to prevent undefined behaviors in Rust.
+  * Transitions execution to the C-ABI `_setup` function in Rust.
+
+Memory Layout & Linker (`memory.x` & `rp2350_linker.ld`):
+- Defined the explicit physical memory map for the RP2350 in `memory.x`:
+  * FLASH (rx): 2MB XIP space at 0x10000000.
+  * RAM (rwx): 512KB at 0x20000000.
+  * SCRATCH (rwx): 8KB at 0x2007E000.
+- Engineered `rp2350_linker.ld` to map the `.picobin` block at the very 
+  start of the Flash memory, followed by `.text` (anchored by `_start`), 
+  `.rodata`, `.data`, and `.bss`.
+- Reserved a dedicated 8 KiB `(NOLOAD)` stack region, enforcing the 
+  mandatory 16-byte alignment required by the RISC-V ABI.
+
+Build System & Toolchain Integration:
+- Configured `build.rs` to dynamically track assembly file changes, 
+  compile `start.s` via the `cc` crate, and inject the custom linker 
+  script into the `rustc` compilation pipeline.
+- Established a comprehensive `Makefile` targeting `riscv32imac-unknown-none-elf`.
+  * `rp2350-build`: Compiles the raw ELF binary.
+  * `rp2350-flash`: Flashes the binary to the target via OpenOCD.
+  * `rp2350-gdb`: Automates the GDB workflow (`monitor reset halt`, 
+    `load`, `break _start`).
+
+Safety Architecture & Rust Core:
+- Implemented an Architecture-Enforced Boundary pattern to isolate 
+  hardware interactions from the kernel core.
+- `src/setup.rs`: Contains the `_setup` hardware entry point where 
+  `unsafe` code is strictly scoped for MMIO configurations.
+- `src/main.rs`: Contains the `_main` kernel execution loop, strictly 
+  enforced by `#![forbid(unsafe_code)]` at the file/module level to 
+  ensure mathematical safety.
+- Handled Rust symbol mangling and GDB visibility cleanly without 
+  polluting the safe kernel scope with `unsafe` C-ABI export attributes.
+
+Debug Workflow:
+- Verified complete OpenOCD/GDB SWD debug pipeline. The debugger 
+  successfully halts at the `_start` boot vector, traces memory 
+  initialization, and hooks into the safe `_main` Rust loop.

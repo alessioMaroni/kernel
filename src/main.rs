@@ -13,7 +13,9 @@
 
 #![no_std]
 #![no_main]
+
 #![deny(unsafe_code)]
+
 #![deny(missing_docs)]
 #![deny(clippy::undocumented_unsafe_blocks)]
 #![deny(clippy::missing_safety_doc)]
@@ -25,11 +27,11 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod panic;
-mod start;
+mod setup;
 
 /// Main execution loop function of the kernel.
 ///
-/// This function is invoked by `_start` once low-level hardware initialization
+/// This function is invoked by `_setup` once low-level hardware initialization
 /// (memory layout, stack pointer setup, and MPU configuration) is complete.
 ///
 /// # Architecture & Constraints
@@ -40,8 +42,10 @@ mod start;
 /// # Behavior
 /// Keeps the processor in a safe idle state while waiting for hardware interrupts
 /// or scheduler tick events.
+
+#[inline(never)]
 #[forbid(unsafe_code)]
-pub fn _main() -> ! {
+pub extern "C" fn _main() -> ! {
     #[allow(clippy::empty_loop)]
     loop {}
 }

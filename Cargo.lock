@@ -95,6 +95,7 @@ dependencies = [
 name = "kernel"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "rp2350-hazard3-hal",
 ]
 

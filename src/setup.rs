@@ -6,13 +6,14 @@
 
 //! # Hardware Bootstrap & Low-Level Entry Point Module
 //!
-//! Provides the raw `_start` entry point invoked by the hardware bootloader
+//! Provides the raw `_setup` entry point invoked by the hardware bootloader
 //! or vector table on RISC-V targets.
 //!
 //! ## Requirements Traced
 //! TODO(DOC-01): Map to definitive DO-178C requirement ID once assigned.
 
-use crate::_main;
+#[cfg(not(any(feature = "rp2350", /* feature = "another_feature" */)))]
+compile_error!("Unsupported target board. Please enable a valid feature flag for your target board in Cargo.toml.");
 
 /// Low-level C-ABI entry point executed immediately upon CPU reset.
 ///
@@ -25,7 +26,7 @@ use crate::_main;
 /// - The stack pointer (`sp`) and global pointer (`gp`) registers must be initialized
 ///   by the assembly bootstrap or bootloader before executing this symbol.
 /// - Memory sections (`.bss` zeroing and `.data` copy from Flash) must be set up
-///   prior to or within this startup sequence.
+///   prior to or within this setup sequence.
 ///
 /// # Behavior
 ///
@@ -33,8 +34,8 @@ use crate::_main;
 /// transferring control to the kernel's main execution loop.
 #[allow(unsafe_code)]
 #[unsafe(no_mangle)]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _setup() -> ! {
     // Once all initializations are completed and verified,
-    // transition directly into the safe kernel main loop.
-    _main()
+    // transition directly into the safe kernel `main` loop.
+    crate::_main()
 }
