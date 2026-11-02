@@ -37,5 +37,5 @@ rustflags = [
 ]
 
 [env]
-CC_riscv32imac_unknown_none_elf = "clang"
-CFLAGS_riscv32imac_unknown_none_elf = "--target=riscv32-unknown-none-elf -march=rv32imac -mabi=ilp32"
+CC_riscv32imac_unknown_none_elf = "riscv-none-elf-gcc"
+CFLAGS_riscv32imac_unknown_none_elf = "-march=rv32imac -mabi=ilp32"

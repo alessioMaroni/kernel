@@ -12,6 +12,8 @@
 //! ## Requirements Traced
 //! TODO(DOC-01): Map to definitive DO-178C requirement ID once assigned.
 
+use crate::console::Console;
+
 #[cfg(not(any(feature = "rp2350", /* feature = "another_feature" */)))]
 compile_error!("Unsupported target board. Please enable a valid feature flag for your target board in Cargo.toml.");
 
@@ -35,7 +37,21 @@ compile_error!("Unsupported target board. Please enable a valid feature flag for
 #[allow(unsafe_code)]
 #[unsafe(no_mangle)]
 pub extern "C" fn _setup() -> ! {
+    // SAFETY: `Console::init` is called strictly once during single-threaded early kernel boot.
+    let console_status = unsafe { Console::init() }.is_ok();
+
+    // Verification of initialization status.
+    let console = match (console_status, Console::get()) {
+        (true, Some(c)) => c,
+        _ => {
+            #[allow(clippy::panic)]
+            {
+                panic!("Fatal: Console hardware initialization failed during boot");
+            }
+        }
+    };
+
     // Once all initializations are completed and verified,
     // transition directly into the safe kernel `main` loop.
-    crate::_main()
+    crate::_main(console)
 }

@@ -27,6 +27,10 @@
 mod panic;
 mod setup;
 
+pub mod console;
+
+use crate::console::Console;
+
 /// Main execution loop function of the kernel.
 ///
 /// This function is invoked by `_setup` once low-level hardware initialization
@@ -42,7 +46,9 @@ mod setup;
 /// or scheduler tick events.
 #[inline(never)]
 #[forbid(unsafe_code)]
-pub extern "C" fn _main() -> ! {
+pub extern "C" fn _main(#[allow(unused_variables)] console: Console) -> ! {
+    println!("Hello, World!");
+
     #[allow(clippy::empty_loop)]
     loop {}
 }

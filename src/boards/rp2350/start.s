@@ -8,10 +8,11 @@
 
 /* 
  * ======================================================================= 
- *  FILE:   start.s
- *  TARGET: RP2350 (Hazard3 RISC-V Core)
- *  DESCRIPTION: Sets the stack pointer (sp) to the top of the stack
- *               defined in the linker script and branches to _setup.
+ *  FILE:        start.s
+ *  TARGET:      RP2350 (Hazard3 RISC-V Core)
+ *  DESCRIPTION: Early bootstrap entry point. Disables interrupts, initializes
+ *               the stack pointer, clears the .bss segment, relocates the
+ *               .data segment from Flash to RAM, and branches to _setup.
  * =======================================================================
  */
 
@@ -23,29 +24,93 @@
 .balign 4
 
 /* 
- * _start: Entry point of the kernel.
- *         Sets the stack pointer (sp) to the top of the stack defined in the linker script.
- *         Then jumps to the _setup function of the kernel.
- *         If _setup returns, enters an infinite loop with WFI (Wait For Interrupt).
+ * _start: Hard entry point executed immediately after boot ROM execution.
  */
 _start:
-    .option push    /* Save current option configuration */
-    .option norelax /* Temporarily disable linker relaxation to ensure correct stack pointer setup */
+    .option arch, +zicsr    /* Enable Zicsr extension for CSR instructions */
+    /* Disable Machine-level Interrupts (MIE bit 3 in mstatus) during bootstrap */
+    csrc mstatus, 0x8
 
-    /* Set the stack pointer (sp) to the stack top defined in the linker script */
+    .option push    /* Preserve existing assembler option state */
+    .option norelax /* Disable linker relaxation to enforce exact absolute addressing for SP */
+
+    /* Initialize the Stack Pointer (sp) to the top of the allocated RAM stack */
     la sp, _stack_top
 
-    /* Restore the original option configuration */
-    .option pop
+    .option pop     /* Restore original assembler option state */
 
-    /* Jump to the _setup function of the kernel */
+    /* 
+     * ================================
+     * 1: BSS Zero-Initialization Loop
+     * ================================
+     * Clears all uninitialized global and static variables in RAM.
+     * Prevents undefined memory states and ensures atomic flags (e.g.,
+     * CONSOLE_INITIALIZED) start deterministically at zero.
+     */
+    la t0, _sbss /* Load BSS section start address in RAM */
+    la t1, _ebss /* Load BSS section end address in RAM */
+
+1:
+    /* Exit condition: If current pointer (t0) >= end pointer (t1), jump to label 2 */
+    bgeu t0, t1, 2f
+    /* Write 32-bit zero word to the current BSS address */
+    sw zero, 0(t0)
+    /* Advance pointer by 4 bytes (1 word) */
+    addi t0, t0, 4
+    /* Loop back to label 1 */
+    j 1b
+
+/* 
+ * ====================================================
+ * 2: Initialized Data Relocation (.data section copy)
+ * ====================================================
+ * Copies initialized global/static variables from non-volatile Flash (XIP)
+ * source address (_sidata) to their target runtime destination in RAM (_sdata).
+ */
+2:
+    la t0, _sidata /* Source address in Flash (Read-Only initialization image) */
+    la t1, _sdata  /* Destination start address in RAM */
+    la t2, _edata  /* Destination end address in RAM */
+
+/* 
+ * =========================================================
+ * 3: Initialized Data Relocation Loop (.data section copy)
+ * =========================================================
+ * Iteratively copies 32-bit words of pre-initialized static/global variables
+ * from non-volatile Flash storage into SRAM execution memory.
+ */
+3:
+    /* Exit condition: If RAM destination pointer (t1) >= RAM end (t2), jump to label 4 */
+    bgeu t1, t2, 4f
+    /* Load a 32-bit word from Flash source (_sidata) */
+    lw t3, 0(t0)
+    /* Store the 32-bit word into RAM destination (_sdata) */
+    sw t3, 0(t1)
+    /* Advance Flash source pointer by 4 bytes */
+    addi t0, t0, 4
+    /* Advance RAM destination pointer by 4 bytes */
+    addi t1, t1, 4
+    /* Loop back to label 3 */
+    j 3b
+
+/* 
+ * =======================================
+ * 4: High-Level Kernel Setup Transition
+ * ======================================
+ * Jumps to the `_setup` function in Rust.
+ */
+4:
     jal _setup
 
 /* 
- * Infinite loop with WFI (Wait For Interrupt)
+ * ===========================
+ * 5: Safe Fallback Park Loop
+ * ===========================
+ * Catches execution if `_setup` unexpectedly returns or diverges.
+ * Places the processor into Wait For Interrupt (WFI) low-power state.
  */
-1:
-    wfi /* Wait for interrupt to reduce power consumption while idle */
-    j 1b
+5:
+    wfi
+    j 5b
 
-.size _start, . - _start /* Define the size of the _start function */
+.size _start, . - _start /* Compute and register symbol size for ELF symbol table */

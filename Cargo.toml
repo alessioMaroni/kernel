@@ -42,7 +42,7 @@ exclude = [
 [build-dependencies]
 cc = "1.0"
 
-[target.'cfg(all(target_arch = "riscv32", target_os = "none"))'.dependencies]
+[dependencies]
 rp2350-hazard3-hal = { version = "0.1.1", optional = true }
 
 [features]

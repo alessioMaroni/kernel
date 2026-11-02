@@ -1,0 +1,66 @@
+feat(console): implement kernel console output system and bootstrap memory setup
+
+- start.s: Enhanced early bootstrap routine before branching to `_setup`.
+  1. Disabled Machine-level interrupts (MIE bit in `mstatus`) to guarantee 
+     atomic execution during early system setup.
+  2. Initialized the Stack Pointer (`sp`) to `_stack_top` with disabled 
+     linker relaxation (`.option norelax`).
+  3. Added BSS section zero-initialization loop (label 1) using `_sbss` 
+     and `_ebss` markers. This guarantees uninitialized static variables and 
+     atomic flags like `CONSOLE_INITIALIZED` start deterministically at zero 
+     (`false`), preventing spurious `AlreadyInitialized` boot errors.
+  4. Implemented .data section relocation loop (labels 2 & 3) copying pre-initialized 
+     global/static variables from non-volatile Flash (`_sidata`) to SRAM (`_sdata` 
+     to `_edata`).
+  5. Established structured transition to `_setup` (label 4) with a fallback WFI 
+     park loop (label 5) to handle unexpected returns safely.
+
+- console module: Introduced the core `console` abstraction module, establishing 
+  an architecture-agnostic layer for kernel serial communication. 
+  A reliable serial console is vital during early bootstrap to provide 
+  transparent diagnostic output and exception telemetry during `panic!` events, 
+  as well as general runtime debugging.
+
+Security & Safety Invariants:
+
+1. Atomic Single-Shot Hardware Initialization:
+   `CONSOLE_INITIALIZED` utilizes `AtomicBool::swap(true, Ordering::SeqCst)` to 
+   guarantee that target hardware initialization (`uart_init`) is executed 
+   strictly once, preventing concurrent Memory-Mapped I/O (MMIO) register races 
+   and re-initialization side effects.
+
+2. Strict Memory Ordering (`Ordering::SeqCst`):
+   Enforces sequential consistency across all threads and core memory operations, 
+   ensuring hardware initialization state updates are globally visible before 
+   subsequent UART operations occur.
+
+3. Deterministic Memory Layout Assurance:
+   Early-boot BSS zeroing (`_sbss`/`_ebss`) and .data section relocation (`_sidata` 
+   to `_sdata`) in `start.s` ensure that memory is fully initialized in SRAM 
+   before any Rust code executes, satisfying the safety preconditions of static atomics.
+
+4. Controlled FFI Boundary Encapsulation:
+   All foreign function interfaces (FFI) to C HAL functions (`uart_init`, 
+   `uart_write_byte`) are encapsulated within audited `unsafe` blocks, each 
+   bearing explicit `SAFETY:` documentation in compliance with kernel lints.
+
+5. Opaque Instance Ownership:
+   The `Console` struct enforces private field construction (`_private: ()`), 
+   preventing out-of-band instantiation. Code outside this module can only acquire 
+   a handle via `Console::get()` after explicit verification of `CONSOLE_INITIALIZED`.
+
+6. Panic-Free Explicit Error Handling:
+   In accordance with kernel safety policies (`#![deny(clippy::unwrap_used, clippy::expect_used)]`), 
+   all fallible operations return explicit `Result<(), ConsoleErrors>` enums, 
+   eliminating implicit panic vectors during system bootstrap.
+
+7. Target Architecture Isolation:
+   Platform-specific drivers (e.g., `rp2350-hazard3-hal`) are gated using 
+   conditional compilation (`#[cfg(feature = "...")]`), decoupling higher-level 
+   kernel diagnostic primitives from low-level board implementations.
+
+8. Global Formatting Macro Integration:
+   Implemented `core::fmt::Write` for `Console` to power globally exported 
+   formatting macros (`print!`, `println!`, `eprint!`, and `eprintln!`), enabling 
+   standardized and safe formatted kernel logging with automatic carriage-return 
+   and newline (`\r\n`) line termination.

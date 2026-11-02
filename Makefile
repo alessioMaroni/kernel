@@ -5,7 +5,7 @@
 # http://mozilla.org/MPL/2.0/.
 
 TARGET := riscv32imac-unknown-none-elf
-ELF    := target/$(TARGET)/release/kernel
+ELF    := target/$(TARGET)/debug/kernel
 
 .PHONY: setup
 setup:
@@ -19,7 +19,7 @@ setup:
 .PHONY: rp2350-build
 rp2350-build:
 	@echo "Building for RP2350 board..."
-	cargo build --target riscv32imac-unknown-none-elf --release --no-default-features --features rp2350
+	cargo build --target riscv32imac-unknown-none-elf --no-default-features --features rp2350
 
 .PHONY:  rp2350-flash
 rp2350-flash:
@@ -54,3 +54,8 @@ rp2350-t1:
 rp2350-t2:
 	@echo "Running RP2350 workflow: gdb..."
 	make rp2350-gdb
+
+.PHONY: serial
+serial:
+	@echo "Starting serial monitor..."
+	sudo picocom -b 9600 /dev/ttyACM0 --nolock
